@@ -5,8 +5,8 @@ stages:
     deps:
     - path: data/source/user_interactions
       hash: md5
-      md5: c3ed6a23c567f705051760c47b977dca.dir
-      size: 2517809
+      md5: ed2b4ddaf7aa85009da6ca87bb69c1ed.dir
+      size: 2518213
       nfiles: 1
     - path: scripts/Ingestion/userinteraction_batch_ingestion.py
       hash: md5
@@ -15,8 +15,8 @@ stages:
     outs:
     - path: data/raw/batch/user_interactions
       hash: md5
-      md5: deaabe02b04d9c92db0044acc46e9e7c.dir
-      size: 877770
+      md5: a950218d647e976eaff15aa4535b0922.dir
+      size: 877842
       nfiles: 4
   ingest_profiles:
     cmd: python scripts/Ingestion/user_profiles_batch_ingestion.py
@@ -54,8 +54,8 @@ stages:
     deps:
     - path: data/raw
       hash: md5
-      md5: 9ccdeb52602f5d1d361c6eeaedabef59.dir
-      size: 1674370
+      md5: e911e1d362936396fb5376936a697aaa.dir
+      size: 1674442
       nfiles: 9
     - path: scripts/validation/validation_script.py
       hash: md5
@@ -64,7 +64,7 @@ stages:
     outs:
     - path: data/quality_reports
       hash: md5
-      md5: 4584a1df4b335fdef1c16170df63ed9a.dir
+      md5: dabae6545c2d237f5be51c2b4fadb8bf.dir
       size: 1643
       nfiles: 1
   curate:
@@ -72,13 +72,13 @@ stages:
     deps:
     - path: data/quality_reports
       hash: md5
-      md5: 4584a1df4b335fdef1c16170df63ed9a.dir
+      md5: dabae6545c2d237f5be51c2b4fadb8bf.dir
       size: 1643
       nfiles: 1
     - path: data/raw
       hash: md5
-      md5: 9ccdeb52602f5d1d361c6eeaedabef59.dir
-      size: 1674370
+      md5: e911e1d362936396fb5376936a697aaa.dir
+      size: 1674442
       nfiles: 9
     - path: scripts/curation/curate_data.py
       hash: md5
@@ -87,20 +87,20 @@ stages:
     outs:
     - path: data/curated
       hash: md5
-      md5: ba986a766a3f22a5036794bbbc624cb1.dir
-      size: 3034216
+      md5: 0d967de77c2af47bb73aeab94ebbe404.dir
+      size: 3034476
       nfiles: 2
     - path: metrics/curation_metadata.json
       hash: md5
-      md5: c0c84d3f3a0e2f124dd73973b4557569
+      md5: 85d143d47b9a65045443b14cbc120693
       size: 2110
   feature_engineering:
     cmd: python scripts/feature_eng/main.py --incremental
     deps:
     - path: data/curated
       hash: md5
-      md5: ba986a766a3f22a5036794bbbc624cb1.dir
-      size: 3034216
+      md5: 0d967de77c2af47bb73aeab94ebbe404.dir
+      size: 3034476
       nfiles: 2
     - path: scripts/feature_eng/config.py
       hash: md5
@@ -121,5 +121,5 @@ stages:
     outs:
     - path: data/processed/features/recomart_features.db
       hash: md5
-      md5: 3431a94783cbd36f6568a282762f38c5
+      md5: 712c5116a510f2826abd4c8523569393
       size: 3182592
