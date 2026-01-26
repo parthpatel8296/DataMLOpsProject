@@ -19,7 +19,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.append(str(PROJECT_ROOT))
 DATA_DIR = PROJECT_ROOT / "data"
 OUTPUT_DIR = DATA_DIR / "processed/training_output"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# Configure MLflow
+mlflow.set_tracking_uri(f"file:///{str(PROJECT_ROOT / 'mlruns')}")
+mlflow.set_experiment("RecoMart_Experiments")
 
 # Import MetaStore
 from scripts.feature_eng.config import FEATURE_DB_PATH
@@ -28,8 +30,6 @@ from scripts.feature_eng.metastore import MetaStore
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
-
-# --- Model Classes (Cloned for Standalone SQL Version) ---
 
 class CollaborativeFilteringSVD:
     def __init__(self, n_components=50, n_iter=5):
@@ -61,8 +61,11 @@ class CollaborativeFilteringSVD:
         self.user_factors = self.model.transform(self.sparse_matrix)
         self.item_factors = self.model.components_.T
         
+        
         expl_var = self.model.explained_variance_ratio_.sum()
         mlflow.log_metric("svd_explained_variance", expl_var)
+        mlflow.log_param("svd_components", self.n_components)
+        mlflow.log_param("svd_n_iter", self.n_iter)
         logger.info(f"SVD Training Completed. Var: {expl_var:.4f}")
 
     def predict(self, user_id, product_id):
@@ -146,9 +149,12 @@ class ContentBasedFiltering:
         avg_precision = np.mean(precisions) if precisions else 0.0
         avg_recall = np.mean(recalls) if recalls else 0.0
         hit_rate = hits / evaluated_users if evaluated_users > 0 else 0.0
+        
         mlflow.log_metric(f"content_precision_{n}", avg_precision)
         mlflow.log_metric(f"content_recall_{n}", avg_recall)
         mlflow.log_metric(f"content_hit_rate_{n}", hit_rate)
+        mlflow.log_param("eval_k", n)
+        
         logger.info(f"CB Hit Rate@{n}: {hit_rate:.4f}")
         return avg_precision, avg_recall, hit_rate
 
@@ -195,18 +201,48 @@ def main():
 
     with mlflow.start_run(run_name=f"Standalone_{args.model}_{datetime.now().strftime('%Y%m%d_%H%M')}"):
         mlflow.log_param("engine", "standalone_metastore")
-        
+        mlflow.log_param("model_type", args.model)
+        mlflow.log_param("split_strategy", "leave-one-out_time_based")
+
         if args.model in ["svd", "all"]:
             svd = CollaborativeFilteringSVD()
             svd.train(train_df)
             svd.evaluate_rmse(test_df)
+            
+            # Sample from TRAIN set to ensure we have history to recommend for
+            sample_users = train_df['user_id'].unique()[:20]
+            with open(OUTPUT_DIR / "svd_top_n_sample.csv", "w") as f:
+                f.write("user_id,product_id,score\n")
+                for uid in sample_users:
+                    recs = svd.recommend(uid, n=50)
+                    for pid, score in recs:
+                        f.write(f"{uid},{pid},{score}\n")
+            
+            mlflow.log_artifact(str(OUTPUT_DIR / "svd_top_n_sample.csv"))
             mlflow.sklearn.log_model(svd, "svd_model_standalone")
 
         if args.model in ["content", "all"]:
             cb_model = ContentBasedFiltering()
             cb_model.fit(dim_prod, train_df)
             cb_model.evaluate_metrics(test_df, n=50)
-            mlflow.sklearn.log_model(cb_model.preprocessor, "cb_preprocessor_standalone")
+            
+            # Sample from TRAIN set to ensure we have profile built
+            sample_users = train_df['user_id'].unique()[:5]
+            avg_sim_scores = []
+            
+            with open(OUTPUT_DIR / "content_recs_sample.csv", "w") as f:
+                f.write("user_id,product_id,similarity_score\n")
+                for uid in sample_users:
+                    recs = cb_model.recommend(uid, n=50)
+                    if recs:
+                        avg_sim_scores.append(np.mean([r[1] for r in recs]))
+                    for pid, score in recs:
+                        f.write(f"{uid},{pid},{score}\n")
+                        
+            avg_conf = np.mean(avg_sim_scores) if avg_sim_scores else 0
+            mlflow.log_metric("content_avg_confidence", avg_conf)
+            mlflow.log_artifact(str(OUTPUT_DIR / "content_recs_sample.csv"))
+            mlflow.sklearn.log_model(cb_model.preprocessor, "cb_model")
 
     logger.info("Model Training Completed.")
 
