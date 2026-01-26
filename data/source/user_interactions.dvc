@@ -1,0 +1,6 @@
+outs:
+- md5: c3ed6a23c567f705051760c47b977dca.dir
+  size: 2517809
+  nfiles: 1
+  hash: md5
+  path: user_interactions
