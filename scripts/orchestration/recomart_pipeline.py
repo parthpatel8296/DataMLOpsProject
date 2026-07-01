@@ -161,7 +161,7 @@ def recomart_pipeline(override_date: Optional[str] = None):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Run or Serve the RecoMart SQL Pipeline")
+    parser = argparse.ArgumentParser(description="Run or Serve the RecoMart Pipeline")
     parser.add_argument("--serve", action="store_true", help="Serve the flow with a daily schedule")
     parser.add_argument("--date", type=str, help="Target date for ingestion (YYYYMMDD)")
     args = parser.parse_args()

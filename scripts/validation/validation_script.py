@@ -198,8 +198,8 @@ def validate_user_profiles():
     validator.expect_column_values_to_not_be_null("location_country")
     validator.expect_column_values_to_not_be_null("age")
     validator.expect_column_values_to_be_between("age", min_value=18, max_value=120)
-    validator.expect_column_values_to_match_regex("location_country", r"^[A-Z].*") # Starts with Capital
-    validator.expect_column_values_to_match_regex("location_city", r"^[A-Z].*")
+    validator.expect_column_values_to_match_regex("location_country", r"^[A-Za-z]+$")
+    validator.expect_column_values_to_match_regex("location_city", r"^[A-Za-z]+$")
     validator.expect_column_values_to_be_of_type("user_id", "int64")
     validator.expect_column_values_to_be_of_type("age", "int64")
     validator.expect_column_values_to_be_of_type("tier", "object")
@@ -220,8 +220,8 @@ def validate_user_profiles():
         "invalid_tier": (~df["tier"].isin(["basic", "premium"])).sum(),
         "invalid_age": (~df["age"].between(18, 120)).sum(),
         "invalid_age_type": (~df["age"].astype(int).between(18, 120)).sum(),
-        "invalid_country_type": (~df["location_country"].astype(str).str.match(r"^[A-Z].*")).sum(),
-        "invalid_city_type": (~df["location_city"].astype(str).str.match(r"^[A-Z].*")).sum(),
+        "invalid_country_type": (~df["location_country"].astype(str).str.strip().str.match(r"^[A-Za-z]+$",case = False, na=False)).sum(),
+        "invalid_city_type": (~df["location_city"].astype(str).str.strip().str.match(r"^[A-Za-z]+$",case = False, na=False)).sum(),
         "failed_expectations": [
             f"{r['expectation_config'].get('expectation_type') or r['expectation_config'].get('type') or 'Unknown'} failed on {r['expectation_config'].get('kwargs', {}).get('column', 'dataset')}: {r.get('result', {}).get('unexpected_count', 'N/A')} failures"
             for r in result["results"] if not r["success"]

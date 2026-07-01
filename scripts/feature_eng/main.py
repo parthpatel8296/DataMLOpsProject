@@ -98,7 +98,7 @@ def fill_and_align(df, target_cols, name="table"):
 
 # --- Main Execution Flow ---
 def main():
-    parser = argparse.ArgumentParser(description="SQL Feature Engineering Pipeline")
+    parser = argparse.ArgumentParser(description="Feature Engineering Pipeline")
     parser.add_argument("--incremental", action="store_true", help="Run in incremental update mode")
     parser.add_argument("--date", type=str, help="Target date for incremental load")
     args = parser.parse_args()

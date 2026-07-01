@@ -12,7 +12,7 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import TruncatedSVD
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 # --- Configuration & Paths ---
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -20,7 +20,7 @@ sys.path.append(str(PROJECT_ROOT))
 DATA_DIR = PROJECT_ROOT / "data"
 OUTPUT_DIR = DATA_DIR / "processed/training_output"
 # Configure MLflow
-mlflow.set_tracking_uri(f"file:///{str(PROJECT_ROOT / 'mlruns')}")
+mlflow.set_tracking_uri(f"sqlite:///{str(PROJECT_ROOT / 'mlflow.db')}")
 mlflow.set_experiment("RecoMart_Experiments")
 
 # Import MetaStore
@@ -76,16 +76,47 @@ class CollaborativeFilteringSVD:
         if u_idx is None or i_idx is None: return 0.0
         return np.dot(self.user_factors[u_idx], self.item_factors[i_idx])
 
-    def evaluate_rmse(self, test_df):
-        logger.info("Evaluating SVD (RMSE)...")
+    def evaluate_metrics(self, test_df, n=10):
+        logger.info(f"Evaluating SVD (RMSE, MAE, R2 & Precision, Recall, HitRate @ {n})...")
         y_true, y_pred = [], []
         for _, row in test_df.iterrows():
             y_true.append(row['implicit_score'])
             y_pred.append(self.predict(row['user_id'], row['product_id']))
+        
         rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-        logger.info(f"SVD Test RMSE: {rmse:.4f}")
+        mae = mean_absolute_error(y_true, y_pred)
+        r2 = r2_score(y_true, y_pred)
+        
+        logger.info(f"SVD Test RMSE: {rmse:.4f} | MAE: {mae:.4f} | R2: {r2:.4f}")
         mlflow.log_metric("svd_test_rmse", rmse)
-        return rmse
+        mlflow.log_metric("svd_test_mae", mae)
+        mlflow.log_metric("svd_test_r2", r2)
+        
+        # Ranking Metrics
+        test_user_items = test_df.groupby('user_id')['product_id'].apply(set).to_dict()
+        precisions, recalls, hits, evaluated_users = [], [], 0, 0
+        reverse_user_map = {v: k for k, v in self.user_map.items()}
+        
+        for user_id, actual_items in test_user_items.items():
+            if user_id not in reverse_user_map: continue
+            evaluated_users += 1
+            rec_items = set([r[0] for r in self.recommend(user_id, n=n)])
+            n_hits = len(rec_items.intersection(actual_items))
+            precisions.append(n_hits / n)
+            recalls.append(n_hits / len(actual_items))
+            if n_hits > 0: hits += 1
+            
+        avg_precision = np.mean(precisions) if precisions else 0.0
+        avg_recall = np.mean(recalls) if recalls else 0.0
+        hit_rate = hits / evaluated_users if evaluated_users > 0 else 0.0
+        
+        mlflow.log_metric(f"svd_precision_{n}", avg_precision)
+        mlflow.log_metric(f"svd_recall_{n}", avg_recall)
+        mlflow.log_metric(f"svd_hit_rate_{n}", hit_rate)
+        mlflow.log_param("svd_eval_k", n)
+        
+        logger.info(f"SVD Hit Rate@{n}: {hit_rate:.4f}")
+        return rmse, mae, r2, avg_precision, avg_recall, hit_rate
 
     def recommend(self, user_id, n=10):
         reverse_user_map = {v: k for k, v in self.user_map.items()}
@@ -207,7 +238,7 @@ def main():
         if args.model in ["svd", "all"]:
             svd = CollaborativeFilteringSVD()
             svd.train(train_df)
-            svd.evaluate_rmse(test_df)
+            svd.evaluate_metrics(test_df, n=50)
             
             # Sample from TRAIN set to ensure we have history to recommend for
             sample_users = train_df['user_id'].unique()[:20]
