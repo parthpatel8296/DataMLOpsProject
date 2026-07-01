@@ -203,18 +203,41 @@ def main():
     parser.add_argument("--model", type=str, default="all", choices=["svd", "content", "all"])
     args = parser.parse_args()
 
-    logger.info("Initializing Custom MetaStore...")
-    ms = MetaStore(PROJECT_ROOT / FEATURE_DB_PATH)
+    # Set dedicated MLflow experiment
+    mlflow.set_experiment("RecoMart_Experiments")
+
+    logger.info("Initializing Feast Feature Store...")
+    from feast import FeatureStore
+    store = FeatureStore(repo_path=str(PROJECT_ROOT / "feast_repo"))
 
     try:
-        conn = ms._get_connection()
-        dim_prod = pd.read_sql("SELECT * FROM dim_product_features", conn)
-        entity_df = pd.read_sql("SELECT user_id, product_id, implicit_score, created_at as event_timestamp FROM fact_user_item_features", conn)
-        conn.close()
-
-        logger.info(f"Retrieving historical features for {len(entity_df)} interactions...")
-        training_df = ms.get_historical_features(entity_df, ["user_features", "product_features", "interaction_features"])
+        # Feast requires an entity_df with timestamps.
+        # We can load the interactions parquet file for our events
+        entity_df = pd.read_parquet(PROJECT_ROOT / "feast_repo" / "data" / "interaction_features.parquet")
+        
+        # Ensure user_id and product_id are standard formats for Feast join
+        entity_df['user_id'] = entity_df['user_id'].astype(str)
+        entity_df['product_id'] = entity_df['product_id'].astype(str)
+        
+        logger.info(f"Retrieving historical features for {len(entity_df)} interactions using Feast...")
+        
+        # Define the exact features we need to train
+        features = [
+            "user_features:age", "user_features:age_scaled", "user_features:location_city", "user_features:location_country", "user_features:tier", "user_features:interaction_count", "user_features:activity_frequency", "user_features:purchase_ratio", "user_features:preferred_category", "user_features:category_confidence",
+            "product_features:category_id", "product_features:category", "product_features:subcategory_id", "product_features:subcategory", "product_features:brand", "product_features:price", "product_features:price_scaled", "product_features:rating_avg", "product_features:rating_count", "product_features:rating_count_log", "product_features:stock_quantity_scaled", "product_features:unique_users", "product_features:popularity_score", "product_features:conversion_rate", "product_features:diversity_score"
+        ]
+        
+        # Retrieve point-in-time correct features
+        training_df = store.get_historical_features(
+            entity_df=entity_df,
+            features=features
+        ).to_df()
+        
         training_df['implicit_score'] = pd.to_numeric(training_df['implicit_score'], errors='coerce').fillna(0)
+
+        # Feast sometimes prefixes column names with the feature view name (e.g. user_features__age)
+        # We rename them back to flat names for the models
+        training_df.columns = [col.split('__')[-1] for col in training_df.columns]
 
         training_df = training_df.sort_values(['user_id', 'event_timestamp']).reset_index(drop=True)
         last_indices = training_df.groupby('user_id').tail(1).index
@@ -224,14 +247,13 @@ def main():
         logger.info(f"Data Split: Train={len(train_df)}, Test={len(test_df)}")
 
     except Exception as e:
-        logger.error(f"Failed to load data from MetaStore: {e}")
+        logger.error(f"Failed to load data from Feast: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
-    # Set dedicated MLflow experiment
-    mlflow.set_experiment("RecoMart_Experiments")
-
-    with mlflow.start_run(run_name=f"Standalone_{args.model}_{datetime.now().strftime('%Y%m%d_%H%M')}"):
-        mlflow.log_param("engine", "standalone_metastore")
+    with mlflow.start_run(run_name=f"Feast_{args.model}_{datetime.now().strftime('%Y%m%d_%H%M')}"):
+        mlflow.log_param("engine", "feast_feature_store")
         mlflow.log_param("model_type", args.model)
         mlflow.log_param("split_strategy", "leave-one-out_time_based")
 
@@ -254,6 +276,7 @@ def main():
 
         if args.model in ["content", "all"]:
             cb_model = ContentBasedFiltering()
+            dim_prod = pd.read_parquet(PROJECT_ROOT / "feast_repo" / "data" / "product_features.parquet")
             cb_model.fit(dim_prod, train_df)
             cb_model.evaluate_metrics(test_df, n=50)
             

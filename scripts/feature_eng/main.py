@@ -13,23 +13,19 @@ sys.path.append(str(PROJECT_ROOT))
 DATA_DIR = PROJECT_ROOT / "data"
 LOG_DIR = DATA_DIR / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
+FEAST_DATA_DIR = PROJECT_ROOT / "feast_repo" / "data"
+FEAST_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Import Schema & MetaStore
 from scripts.feature_eng.config import (
     USER_FEATURES_COLS,
     PRODUCT_FEATURES_COLS,
-    INTERACTION_FEATURES_COLS,
-    FEATURE_DB_PATH,
-    USER_REGISTRY_METADATA,
-    PRODUCT_REGISTRY_METADATA,
-    INTERACTION_REGISTRY_METADATA
+    INTERACTION_FEATURES_COLS
 )
 from scripts.feature_eng.transformers import (
     UserFeatureGenerator,
     ProductFeatureGenerator,
     InteractionFeatureGenerator
 )
-from scripts.feature_eng.metastore import MetaStore
 
 # --- Setup Logging ---
 logging.basicConfig(
@@ -57,14 +53,15 @@ def load_clean_data(date_str: str = None) -> pd.DataFrame:
     
     return pd.read_parquet(input_path), str(input_path)
 
-def load_existing_features(metastore, table_name):
-    """Loads existing features from SQL."""
+def load_existing_features(file_name):
+    """Loads existing features from Parquet."""
     try:
-        conn = metastore._get_connection()
-        df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
-        conn.close()
-        return df
-    except Exception:
+        path = FEAST_DATA_DIR / file_name
+        if path.exists():
+            return pd.read_parquet(path)
+        return pd.DataFrame()
+    except Exception as e:
+        logger.warning(f"Could not load {file_name}: {e}")
         return pd.DataFrame()
 
 # --- Alignment Helper ---
@@ -89,8 +86,8 @@ def fill_and_align(df, target_cols, name="table"):
         for c in missing:
             df[c] = DEFAULT_VALUES.get(c, 0)
     
-    # 1. Select only specific target columns (removes _purchases etc)
-    df = df[target_cols]
+    # 1. Select only specific target columns
+    df = df[target_cols].copy()
     
     # 2. Final NaN Cleanup
     df = df.fillna(value=DEFAULT_VALUES)
@@ -98,62 +95,60 @@ def fill_and_align(df, target_cols, name="table"):
 
 # --- Main Execution Flow ---
 def main():
-    parser = argparse.ArgumentParser(description="Feature Engineering Pipeline")
+    parser = argparse.ArgumentParser(description="Feature Engineering Pipeline for Feast")
     parser.add_argument("--incremental", action="store_true", help="Run in incremental update mode")
     parser.add_argument("--date", type=str, help="Target date for incremental load")
     args = parser.parse_args()
 
-    logger.info(f"=== Starting Feature Pipeline (Incremental={args.incremental}) ===")
+    logger.info(f"=== Starting Feature Pipeline for Feast (Incremental={args.incremental}) ===")
     
-    # Initialize MetaStore with explicit schema path for initialization
-    schema_file = Path(__file__).resolve().parent / "feature_engineering_schema.sql"
-    ms = MetaStore(PROJECT_ROOT / FEATURE_DB_PATH, schema_path=schema_file)
-
-    # 1. Register Features (One-time or idempotent)
-    ms.register_feature_view(**USER_REGISTRY_METADATA)
-    ms.register_feature_view(**PRODUCT_REGISTRY_METADATA)
-    ms.register_feature_view(**INTERACTION_REGISTRY_METADATA)
-
-    # 2. Load Data
+    # 1. Load Data
     df, source_path = load_clean_data(args.date if args.incremental else None)
 
-    # 3. Transform Features
+    # 2. Transform Features
     user_transformer = UserFeatureGenerator()
     prod_transformer = ProductFeatureGenerator()
     inter_transformer = InteractionFeatureGenerator()
 
     if args.incremental:
-        dim_user = user_transformer.update(load_existing_features(ms, "dim_user_features"), df)
-        dim_prod = prod_transformer.update(load_existing_features(ms, "dim_product_features"), df)
-        dim_inter = inter_transformer.update(load_existing_features(ms, "fact_user_item_features"), df)
+        dim_user = user_transformer.update(load_existing_features("user_features.parquet"), df)
+        dim_prod = prod_transformer.update(load_existing_features("product_features.parquet"), df)
+        dim_inter = inter_transformer.update(load_existing_features("interaction_features.parquet"), df)
     else:
         dim_user = user_transformer.transform(df)
         dim_prod = prod_transformer.transform(df)
         dim_inter = inter_transformer.transform(df)
     
-    # 3.5 Align Columns
+    # 3. Align Columns
     dim_user = fill_and_align(dim_user, USER_FEATURES_COLS, "User Features")
     dim_prod = fill_and_align(dim_prod, PRODUCT_FEATURES_COLS, "Product Features")
     dim_inter = fill_and_align(dim_inter, INTERACTION_FEATURES_COLS, "Interaction Features")
     
-    # 4. Save to SQL
-    # We always replace because the transformers (transform/update) return the consolidated "latest" state.
-    # Appending would cause duplication as the update logic already includes history.
-    ms.save_features("dim_user_features", dim_user, mode="replace")
-    ms.save_features("dim_product_features", dim_prod, mode="replace")
-    ms.save_features("fact_user_item_features", dim_inter, mode="replace")
+    # 4. Add Feast specific timestamps
+    # Feast requires an event_timestamp for point-in-time joins
+    # We set features to an old date, and interactions to now, so they always match
+    past_date = pd.Timestamp('2000-01-01', tz='UTC')
+    now_date = pd.Timestamp.now(tz="UTC")
+    
+    dim_user['event_timestamp'] = past_date
+    dim_prod['event_timestamp'] = past_date
+    dim_inter['event_timestamp'] = now_date
+    
+    # Clean types for parquet
+    dim_user['user_id'] = dim_user['user_id'].astype(str)
+    dim_prod['product_id'] = dim_prod['product_id'].astype(str)
+    dim_inter['user_id'] = dim_inter['user_id'].astype(str)
+    dim_inter['product_id'] = dim_inter['product_id'].astype(str)
+    
+    # Give interactions a strictly unique timestamp to avoid Dask join bugs
+    dim_inter['event_timestamp'] = dim_inter['event_timestamp'] + pd.to_timedelta(dim_inter.index, unit='ms')
 
-    # 5. Log Versions
-    user_ver = ms.get_next_version("user")
-    prod_ver = ms.get_next_version("product")
-    inter_ver = ms.get_next_version("interaction")
-
-    ms.log_version("user", "dim_user_features", user_ver, "sql_pipeline", data_source=source_path)
-    ms.log_version("product", "dim_product_features", prod_ver, "sql_pipeline", data_source=source_path)
-    ms.log_version("interaction", "fact_user_item_features", inter_ver, "sql_pipeline", data_source=source_path)
-
-    logger.info(f"Updated SQL Feature Store: User v{user_ver}, Product v{prod_ver}, Interaction v{inter_ver}")
-    logger.info("=== Pipeline Completed Successfully ===")
+    # 5. Save to Parquet for Feast Offline Store
+    dim_user.to_parquet(FEAST_DATA_DIR / "user_features.parquet", index=False)
+    dim_prod.to_parquet(FEAST_DATA_DIR / "product_features.parquet", index=False)
+    dim_inter.to_parquet(FEAST_DATA_DIR / "interaction_features.parquet", index=False)
+    
+    logger.info("=== Feast Pipeline Completed Successfully ===")
 
 if __name__ == "__main__":
     main()
