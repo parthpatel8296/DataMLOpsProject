@@ -39,3 +39,9 @@ data/
 mlruns/
 
 metrics/
+
+# Data and Databases
+*.parquet
+*.db
+feast_repo/data/registry.db
+feast_repo/data/online_store.db
