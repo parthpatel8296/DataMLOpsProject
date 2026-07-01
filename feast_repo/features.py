@@ -1,26 +1,28 @@
 from datetime import timedelta
+from pathlib import Path
 from feast import Entity, FeatureView, Field, FileSource, ValueType
 from feast.types import Float32, Int64, String
 
-# Define data sources
-# Note: Feast requires an `event_timestamp` column in the data source.
-# Our data engineering pipeline will output parquet files with this column.
+# Define Data Sources
+# Pointing to the central project data lake directory
+DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "processed" / "features"
+
 user_source = FileSource(
-    path="data/user_features.parquet",
+    name="user_source",
+    path=str(DATA_DIR / "user_features.parquet"),
     timestamp_field="event_timestamp",
-    created_timestamp_column="created_at"
 )
 
 product_source = FileSource(
-    path="data/product_features.parquet",
+    name="product_source",
+    path=str(DATA_DIR / "product_features.parquet"),
     timestamp_field="event_timestamp",
-    created_timestamp_column="created_at"
 )
 
 interaction_source = FileSource(
-    path="data/interaction_features.parquet",
+    name="interaction_source",
+    path=str(DATA_DIR / "interaction_features.parquet"),
     timestamp_field="event_timestamp",
-    created_timestamp_column="created_at"
 )
 
 # Define entities
@@ -96,4 +98,20 @@ interaction_features_view = FeatureView(
         Field(name="day_sin", dtype=Float32),
         Field(name="day_cos", dtype=Float32)
     ]
+)
+
+# -------------------------------------------------------------------------
+# Feature Services
+# -------------------------------------------------------------------------
+from feast import FeatureService
+
+# Feature Service: A versioned group of features for a specific model version.
+recommender_service_v1 = FeatureService(
+    name="recommender_service_v1",
+    features=[
+        user_features_view,
+        product_features_view,
+        interaction_features_view,
+    ],
+    tags={"description": "Main featureset for Hybrid Recommendation Model v1"}
 )

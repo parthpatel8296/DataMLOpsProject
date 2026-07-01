@@ -144,9 +144,14 @@ def main():
     dim_inter['event_timestamp'] = dim_inter['event_timestamp'] + pd.to_timedelta(dim_inter.index, unit='ms')
 
     # 5. Save to Parquet for Feast Offline Store
-    dim_user.to_parquet(FEAST_DATA_DIR / "user_features.parquet", index=False)
-    dim_prod.to_parquet(FEAST_DATA_DIR / "product_features.parquet", index=False)
-    dim_inter.to_parquet(FEAST_DATA_DIR / "interaction_features.parquet", index=False)
+    # We use the central data/processed/features directory as it's a better architectural pattern 
+    # for a Data Lake rather than hiding data inside the Feast tool directory.
+    FEATURES_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "features"
+    FEATURES_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    
+    dim_user.to_parquet(FEATURES_DATA_DIR / "user_features.parquet", index=False)
+    dim_prod.to_parquet(FEATURES_DATA_DIR / "product_features.parquet", index=False)
+    dim_inter.to_parquet(FEATURES_DATA_DIR / "interaction_features.parquet", index=False)
     
     logger.info("=== Feast Pipeline Completed Successfully ===")
 

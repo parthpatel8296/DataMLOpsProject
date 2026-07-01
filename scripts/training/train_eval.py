@@ -212,8 +212,9 @@ def main():
 
     try:
         # Feast requires an entity_df with timestamps.
-        # We can load the interactions parquet file for our events
-        entity_df = pd.read_parquet(PROJECT_ROOT / "feast_repo" / "data" / "interaction_features.parquet")
+        # We load all user interactions to serve as the 'entity_df' 
+        # This dictates the timeline of events we want features for
+        entity_df = pd.read_parquet(PROJECT_ROOT / "data" / "processed" / "features" / "interaction_features.parquet")
         
         # Ensure user_id and product_id are standard formats for Feast join
         entity_df['user_id'] = entity_df['user_id'].astype(str)
@@ -276,7 +277,7 @@ def main():
 
         if args.model in ["content", "all"]:
             cb_model = ContentBasedFiltering()
-            dim_prod = pd.read_parquet(PROJECT_ROOT / "feast_repo" / "data" / "product_features.parquet")
+            dim_prod = pd.read_parquet(PROJECT_ROOT / "data" / "processed" / "features" / "product_features.parquet")
             cb_model.fit(dim_prod, train_df)
             cb_model.evaluate_metrics(test_df, n=50)
             
