@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import mlflow
 import mlflow.sklearn
+from feast import FeatureStore
 from pathlib import Path
 from datetime import datetime
 import scipy.sparse as sparse
@@ -207,7 +208,7 @@ def main():
     mlflow.set_experiment("RecoMart_Experiments")
 
     logger.info("Initializing Feast Feature Store...")
-    from feast import FeatureStore
+    
     store = FeatureStore(repo_path=str(PROJECT_ROOT / "feast_repo"))
 
     try:
