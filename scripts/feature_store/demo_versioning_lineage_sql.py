@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import sys
 import logging
+# pyrefly: ignore [missing-import]
 from feast import FeatureStore
 
 # --- Configuration & Paths ---
