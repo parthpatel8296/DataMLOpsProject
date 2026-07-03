@@ -30,9 +30,6 @@ OUTPUT_DIR = DATA_DIR / "processed/training_output"
 mlflow.set_tracking_uri(f"sqlite:///{str(PROJECT_ROOT / 'mlflow.db')}")
 mlflow.set_experiment("RetailX_Experiments")
 
-# Import MetaStore
-from scripts.feature_eng.config import FEATURE_DB_PATH
-from scripts.feature_eng.metastore import MetaStore
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")

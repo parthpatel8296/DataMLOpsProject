@@ -46,9 +46,12 @@ stages:
     deps:
     - data/curated
     - scripts/feature_eng/main.py
-    - scripts/feature_eng/metastore.py
     - scripts/feature_eng/config.py
     - scripts/feature_eng/transformers.py
     outs:
-    - data/processed/features/retailx_features.db:
+    - data/processed/features/user_features.parquet:
+        persist: true
+    - data/processed/features/product_features.parquet:
+        persist: true
+    - data/processed/features/interaction_features.parquet:
         persist: true
