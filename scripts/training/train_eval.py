@@ -2,12 +2,17 @@ import argparse
 import logging
 import sys
 import pandas as pd
+# pyrefly: ignore [missing-import]
 import numpy as np
+# pyrefly: ignore [missing-import]
 import mlflow
+# pyrefly: ignore [missing-import]
 import mlflow.sklearn
+# pyrefly: ignore [missing-import]
 from feast import FeatureStore
 from pathlib import Path
 from datetime import datetime
+# pyrefly: ignore [missing-import]
 import scipy.sparse as sparse
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
@@ -50,6 +55,9 @@ class CollaborativeFilteringSVD:
 
         self.user_map = dict(enumerate(df['user_id'].cat.categories))
         self.item_map = dict(enumerate(df['product_id'].cat.categories))
+        
+        # Store seen items to filter out during evaluation
+        self.user_seen_items = df.groupby('user_id')['product_id'].apply(set).to_dict()
         
         user_indices = df['user_id'].cat.codes
         item_indices = df['product_id'].cat.codes
@@ -125,8 +133,17 @@ class CollaborativeFilteringSVD:
         if user_idx is None: return []
         user_vec = self.user_factors[user_idx].reshape(1, -1)
         pred_scores = np.dot(user_vec, self.item_factors.T).flatten()
+        
+        # Filter out items the user has already interacted with during training
+        reverse_item_map = {v: k for k, v in self.item_map.items()}
+        seen_items = getattr(self, 'user_seen_items', {}).get(user_id, set())
+        for item in seen_items:
+            item_idx = reverse_item_map.get(item)
+            if item_idx is not None:
+                pred_scores[item_idx] = -np.inf
+                
         top_indices = pred_scores.argsort()[::-1][:n]
-        return [(self.item_map[idx], pred_scores[idx]) for idx in top_indices]
+        return [(self.item_map[idx], pred_scores[idx]) for idx in top_indices if pred_scores[idx] != -np.inf]
 
 class ContentBasedFiltering:
     def __init__(self):
@@ -164,6 +181,9 @@ class ContentBasedFiltering:
                     total_weight += weight
             if total_weight > 0: self.user_profiles[user_id] = user_vec / total_weight
 
+        # Store seen items to filter out during evaluation
+        self.user_seen_items = interaction_df.groupby('user_id')['product_id'].apply(set).to_dict()
+
     def evaluate_metrics(self, test_df, n=10):
         logger.info(f"Evaluating Content-Based (Precision, Recall, HitRate @ {n})...")
         test_user_items = test_df.groupby('user_id')['product_id'].apply(set).to_dict()
@@ -194,8 +214,17 @@ class ContentBasedFiltering:
         if user_id not in self.user_profiles: return []
         user_vec = self.user_profiles[user_id].reshape(1, -1)
         sim_scores = cosine_similarity(user_vec, self.product_vectors).flatten()
+        
+        # Filter out items the user has already interacted with during training
+        seen_items = getattr(self, 'user_seen_items', {}).get(user_id, set())
+        prod_id_to_idx = {pid: i for i, pid in enumerate(self.product_ids)}
+        for item in seen_items:
+            item_idx = prod_id_to_idx.get(item)
+            if item_idx is not None:
+                sim_scores[item_idx] = -np.inf
+                
         top_indices = sim_scores.argsort()[::-1][:n]
-        return [(self.product_ids[idx], sim_scores[idx]) for idx in top_indices]
+        return [(self.product_ids[idx], sim_scores[idx]) for idx in top_indices if sim_scores[idx] != -np.inf]
 
 # --- Workflow Logic ---
 
@@ -242,9 +271,8 @@ def main():
         training_df.columns = [col.split('__')[-1] for col in training_df.columns]
 
         training_df = training_df.sort_values(['user_id', 'event_timestamp']).reset_index(drop=True)
-        last_indices = training_df.groupby('user_id').tail(1).index
-        test_df = training_df.loc[last_indices].copy()
-        train_df = training_df.drop(last_indices).copy()
+        from sklearn.model_selection import train_test_split
+        train_df, test_df = train_test_split(training_df, test_size=0.30, random_state=42)
         
         logger.info(f"Data Split: Train={len(train_df)}, Test={len(test_df)}")
 

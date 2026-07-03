@@ -1,6 +1,8 @@
 from datetime import timedelta
 from pathlib import Path
-from feast import Entity, FeatureView, Field, FileSource, ValueType
+# pyrefly: ignore [missing-import]
+from feast import Entity, FeatureView, Field, FileSource, ValueType, FeatureService
+# pyrefly: ignore [missing-import]
 from feast.types import Float32, Int64, String
 
 # Define Data Sources
@@ -103,7 +105,6 @@ interaction_features_view = FeatureView(
 # -------------------------------------------------------------------------
 # Feature Services
 # -------------------------------------------------------------------------
-from feast import FeatureService
 
 # Feature Service: A versioned group of features for a specific model version.
 recommender_service_v1 = FeatureService(
