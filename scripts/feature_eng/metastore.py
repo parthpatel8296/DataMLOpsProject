@@ -36,7 +36,7 @@ class MetaStore:
         finally:
             conn.close()
 
-    def register_feature_view(self, name, entity, description, schema, ttl_days=365, owner="recomart"):
+    def register_feature_view(self, name, entity, description, schema, ttl_days=365, owner="retailx"):
         """Registers a new feature view and its column metadata."""
         conn = self._get_connection()
         try:

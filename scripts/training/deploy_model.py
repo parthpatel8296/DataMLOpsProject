@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     client = MlflowClient()
-    experiment_name = "RecoMart_Experiments"
+    experiment_name = "RetailX_Experiments"
     experiment = client.get_experiment_by_name(experiment_name)
 
     if not experiment:
@@ -42,7 +42,7 @@ def main():
     logger.info(f"Selected Best Run ID: {best_run_id} with Hit Rate@50: {hit_rate:.4f}")
 
     # Register the model
-    model_name = "RecoMart_Model"
+    model_name = "RetailX_Model"
     model_uri = f"runs:/{best_run_id}/cb_model"
 
     logger.info(f"Registering model in MLflow Model Registry as '{model_name}'...")

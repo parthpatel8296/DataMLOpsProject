@@ -128,10 +128,10 @@ def get_latest_source_date():
 
 from typing import Optional
 
-@flow(name="RecoMart Pipeline", log_prints=True, on_failure=[notify_on_failure])
-def recomart_pipeline(override_date: Optional[str] = None):
+@flow(name="RetailX Pipeline", log_prints=True, on_failure=[notify_on_failure])
+def retailx_pipeline(override_date: Optional[str] = None):
     prefect_logger = get_run_logger()
-    prefect_logger.info("Starting RecoMart Pipeline Execution")
+    prefect_logger.info("Starting RetailX Pipeline Execution")
 
     # 1. Ingest Data
     if override_date:
@@ -157,20 +157,20 @@ def recomart_pipeline(override_date: Optional[str] = None):
     # 4. Train
     train_model_task()
 
-    prefect_logger.info("RecoMart Pipeline Execution Completed Successfully.")
+    prefect_logger.info("RetailX Pipeline Execution Completed Successfully.")
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Run or Serve the RecoMart Pipeline")
+    parser = argparse.ArgumentParser(description="Run or Serve the RetailX Pipeline")
     parser.add_argument("--serve", action="store_true", help="Serve the flow with a daily schedule")
     parser.add_argument("--date", type=str, help="Target date for ingestion (YYYYMMDD)")
     args = parser.parse_args()
     
     if args.serve:
-        recomart_pipeline.serve(
-            name="recomart-daily-deployment",
+        retailx_pipeline.serve(
+            name="retailx-daily-deployment",
             cron="30 2 * * *", # Run daily at 02:30 AM
-            tags=["recomart", "daily"]
+            tags=["retailx", "daily"]
         )
     else:
-        recomart_pipeline(override_date=args.date)
+        retailx_pipeline(override_date=args.date)

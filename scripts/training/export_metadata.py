@@ -11,7 +11,7 @@ EXPORT_PATH = PROJECT_ROOT / "docs" / "model_metadata_track.json"
 
 # Setup MLflow
 mlflow.set_tracking_uri(f"sqlite:///{str(PROJECT_ROOT / 'mlflow.db')}")
-EXPERIMENT_NAME = "RecoMart_Experiments"
+EXPERIMENT_NAME = "RetailX_Experiments"
 
 def export_metadata():
     print(f"Exporting metadata for experiment: {EXPERIMENT_NAME} from {mlflow.get_tracking_uri()}")

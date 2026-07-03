@@ -119,7 +119,7 @@ stages:
       md5: 58b8ef3773cff5fa99f55146c51a92db
       size: 22441
     outs:
-    - path: data/processed/features/recomart_features.db
+    - path: data/processed/features/retailx_features.db
       hash: md5
       md5: 712c5116a510f2826abd4c8523569393
       size: 3182592

@@ -11,7 +11,7 @@ REPORT_PATH = PROJECT_ROOT / "docs" / "model_performance_report.md"
 
 # Setup MLflow
 mlflow.set_tracking_uri(f"sqlite:///{str(PROJECT_ROOT / 'mlflow.db')}")
-EXPERIMENT_NAME = "RecoMart_Experiments"
+EXPERIMENT_NAME = "RetailX_Experiments"
 
 def generate_report():
     print(f"Connecting to MLflow at {mlflow.get_tracking_uri()}...")
@@ -42,7 +42,7 @@ def generate_report():
         params_table = "| No Parameters Logged | - |"
     
     # Start Building Markdown
-    md_content = f"""# RecoMart Model Performance Report
+    md_content = f"""# RetailX Model Performance Report
 **Generated on:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 **Experiment:** {EXPERIMENT_NAME}
 

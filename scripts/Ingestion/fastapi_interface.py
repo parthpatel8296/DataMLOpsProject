@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pathlib import Path
 import json
 
-app = FastAPI(title="RecoMart Product Catalog API")
+app = FastAPI(title="RetailX Product Catalog API")
 
 # Resolve project root safely
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent

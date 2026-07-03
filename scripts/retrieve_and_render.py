@@ -203,20 +203,20 @@ async def get_prefect_flow():
     
     # Fallback to scanning the file directly if the server isn't running
     try:
-        with open(PROJECT_ROOT / "scripts" / "orchestration" / "recomart_pipeline.py", "r") as f:
+        with open(PROJECT_ROOT / "scripts" / "orchestration" / "retailx_pipeline.py", "r") as f:
             for line in f:
                 if "@flow(" in line and "name=" in line:
                     return line.split('name="')[1].split('"')[0]
     except Exception:
         pass
         
-    return "RecoMart Pipeline" # Default
+    return "RetailX Pipeline" # Default
 
 def get_mlflow_details():
     client = MlflowClient()
     
     exp_name = "Not Available"
-    experiment = client.get_experiment_by_name("RecoMart_Experiments")
+    experiment = client.get_experiment_by_name("RetailX_Experiments")
     if experiment:
         exp_name = experiment.name
         

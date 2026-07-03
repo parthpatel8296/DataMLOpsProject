@@ -68,7 +68,7 @@ async def get_prefect_details():
     if flow_name == "Not Available":
         # Fallback for demonstration if server isn't running properly
         try:
-            with open(PROJECT_ROOT / "scripts" / "orchestration" / "recomart_pipeline.py", "r") as f:
+            with open(PROJECT_ROOT / "scripts" / "orchestration" / "retailx_pipeline.py", "r") as f:
                 for line in f:
                     if "@flow(" in line and "name=" in line:
                         flow_name = line.split('name="')[1].split('"')[0]
@@ -81,7 +81,7 @@ def get_mlflow_details():
     client = MlflowClient()
     
     exp_name = "Not Available"
-    experiment = client.get_experiment_by_name("RecoMart_Experiments")
+    experiment = client.get_experiment_by_name("RetailX_Experiments")
     
     mlflow_runs_history = []
     if experiment:

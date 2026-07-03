@@ -1,4 +1,4 @@
--- RecoMart Feature Engineering Schema (DDL)
+-- RetailX Feature Engineering Schema (DDL)
 -- This file defines the tables for storing model features.
 
 -- 1. Product Dimensions Table

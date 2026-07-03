@@ -1,4 +1,4 @@
-project: recomart_feature_store
+project: retailx_feature_store
 registry: data/registry.db
 provider: local
 online_store:

@@ -14,6 +14,7 @@ from pathlib import Path
 from datetime import datetime
 # pyrefly: ignore [missing-import]
 import scipy.sparse as sparse
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -27,7 +28,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 OUTPUT_DIR = DATA_DIR / "processed/training_output"
 # Configure MLflow
 mlflow.set_tracking_uri(f"sqlite:///{str(PROJECT_ROOT / 'mlflow.db')}")
-mlflow.set_experiment("RecoMart_Experiments")
+mlflow.set_experiment("RetailX_Experiments")
 
 # Import MetaStore
 from scripts.feature_eng.config import FEATURE_DB_PATH
@@ -234,7 +235,7 @@ def main():
     args = parser.parse_args()
 
     # Set dedicated MLflow experiment
-    mlflow.set_experiment("RecoMart_Experiments")
+    mlflow.set_experiment("RetailX_Experiments")
 
     logger.info("Initializing Feast Feature Store...")
     
@@ -271,7 +272,6 @@ def main():
         training_df.columns = [col.split('__')[-1] for col in training_df.columns]
 
         training_df = training_df.sort_values(['user_id', 'event_timestamp']).reset_index(drop=True)
-        from sklearn.model_selection import train_test_split
         train_df, test_df = train_test_split(training_df, test_size=0.30, random_state=42)
         
         logger.info(f"Data Split: Train={len(train_df)}, Test={len(test_df)}")
@@ -285,7 +285,7 @@ def main():
     with mlflow.start_run(run_name=f"Feast_{args.model}_{datetime.now().strftime('%Y%m%d_%H%M')}"):
         mlflow.log_param("engine", "feast_feature_store")
         mlflow.log_param("model_type", args.model)
-        mlflow.log_param("split_strategy", "leave-one-out_time_based")
+        mlflow.log_param("split_strategy", "random_70_30")
 
         if args.model in ["svd", "all"]:
             svd = CollaborativeFilteringSVD()

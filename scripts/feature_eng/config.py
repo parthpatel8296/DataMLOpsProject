@@ -1,7 +1,7 @@
 # Feature Store Schema Definitions
 
 # Database Path
-FEATURE_DB_PATH = "data/processed/features/recomart_features.db"
+FEATURE_DB_PATH = "data/processed/features/retailx_features.db"
 
 # User Features Schema
 USER_FEATURES_COLS = [

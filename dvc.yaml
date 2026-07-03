@@ -50,5 +50,5 @@ stages:
     - scripts/feature_eng/config.py
     - scripts/feature_eng/transformers.py
     outs:
-    - data/processed/features/recomart_features.db:
+    - data/processed/features/retailx_features.db:
         persist: true
