@@ -6,8 +6,8 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import mlflow
 from mlflow.tracking import MlflowClient
-
-app = FastAPI(title="Application Details API")
+from prefect.client.orchestration import get_client
+app = FastAPI(title="RetailX Details API")
 
 # Setup CORS
 app.add_middleware(
@@ -18,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 mlflow.set_tracking_uri(f"sqlite:///{str(PROJECT_ROOT / 'mlflow.db')}")
 
 async def get_prefect_details():
@@ -27,7 +27,7 @@ async def get_prefect_details():
     flow_name = "Not Available"
     
     try:
-        from prefect.client.orchestration import get_client
+        
         async with get_client() as client:
             flows = await client.read_flows(limit=1)
             if flows:
@@ -55,11 +55,16 @@ async def get_prefect_details():
                 
             deps = await client.read_deployments(limit=5)
             for d in deps:
-                schedule = d.schedule.cron if (d.schedule and hasattr(d.schedule, 'cron')) else "None"
+                schedule_str = "None"
+                if hasattr(d, 'schedules') and d.schedules:
+                    schedule_str = "Scheduled" # Simply indicate it has schedules
+                elif hasattr(d, 'schedule') and d.schedule and hasattr(d.schedule, 'cron'):
+                    schedule_str = d.schedule.cron
+                    
                 prefect_deployments.append({
                     "id": str(d.id),
                     "name": d.name,
-                    "schedule": schedule,
+                    "schedule": schedule_str,
                     "tags": ", ".join(d.tags) if d.tags else "None"
                 })
     except Exception as e:
@@ -159,7 +164,7 @@ async def get_details():
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_dashboard():
-    html_path = PROJECT_ROOT / "docs" / "app_details.html"
+    html_path = PROJECT_ROOT /"scripts"/ "dashboard" / "app_details.html"
     try:
         with open(html_path, "r", encoding="utf-8") as f:
             return f.read()

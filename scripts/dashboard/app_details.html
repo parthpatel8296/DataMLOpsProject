@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetailX Pipeline Details</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --border-light: #e5e7eb;
+            --text-dark: #111827;
+            --text-muted: #6b7280;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success-bg: #d1fae5;
+            --success-text: #065f46;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --danger-bg: #fee2e2;
+            --danger-text: #991b1b;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .header-bar {
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-light);
+            padding: 1.25rem 2.5rem;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+
+        .header-bar h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: var(--text-dark);
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .header-bar .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1280px;
+            margin: 2rem auto;
+            position: relative;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-top: 4px solid var(--border-light);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .card:nth-child(1) {
+            border-top-color: #3b82f6;
+        }
+
+        /* Blue */
+        .card:nth-child(2) {
+            border-top-color: #10b981;
+        }
+
+        /* Green */
+        .card:nth-child(3) {
+            border-top-color: #8b5cf6;
+        }
+
+        /* Purple */
+        .card:nth-child(4) {
+            border-top-color: #f59e0b;
+        }
+
+        /* Yellow */
+
+        .card-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .card-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            word-wrap: break-word;
+            line-height: 1.2;
+        }
+
+        .table-container {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .table-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            background-color: #ffffff;
+            color: var(--text-dark);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th,
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        th {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background-color: #f9fafb;
+        }
+
+        td {
+            font-size: 0.875rem;
+            color: var(--text-dark);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: #f9fafb;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .status-COMPLETED,
+        .status-FINISHED {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        .status-FAILED {
+            background-color: var(--danger-bg);
+            color: var(--danger-text);
+        }
+
+        .status-RUNNING {
+            background-color: var(--warning-bg);
+            color: var(--warning-text);
+        }
+
+        .status-UNKNOWN {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .metric-val {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        /* Auto-refresh indicator */
+        .refresh-indicator {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background-color: var(--card-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid var(--border-light);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header-bar">
+        <h1>RetailX Pipeline Dashboard</h1>
+        <div class="subtitle">Internal System State & Configuration</div>
+    </div>
+
+    <div class="container">
+        <!-- KPI SUMMARY CARDS -->
+        <div class="grid">
+            <div class="card">
+                <div class="card-title">Active Prefect Flow</div>
+                <div class="card-value" id="val-flow">Loading...</div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">MLflow Experiment</div>
+                <div class="card-value" id="val-exp">Loading...</div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Registered Model</div>
+                <div class="card-value" id="val-model">Loading...</div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Deployment Stage</div>
+                <div class="card-value highlight" id="val-stage">Loading...</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <h3 class="table-title">Recent Flow Runs</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Run ID</th>
+                        <th>Name</th>
+                        <th>State</th>
+                        <th>Duration</th>
+                        <th>Start Time</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody id="prefect-runs-body">
+                    <tr>
+                        <td colspan="6" class="empty-state">Loading flow history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-container">
+            <h3 class="table-title">Active Deployments</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Deployment ID</th>
+                        <th>Name</th>
+                        <th>Schedule</th>
+                        <th>Tags</th>
+                    </tr>
+                </thead>
+                <tbody id="prefect-deps-body">
+                    <tr>
+                        <td colspan="4" class="empty-state">Loading deployments...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-container">
+            <h3 class="table-title">Recent Experiment Runs</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Run ID</th>
+                        <th>Model Type</th>
+                        <th>Status</th>
+                        <th>SVD Hit@50</th>
+                        <th>CB Hit@50</th>
+                        <th>SVD Prec@50</th>
+                        <th>CB Prec@50</th>
+                        <th>Start Time</th>
+                    </tr>
+                </thead>
+                <tbody id="mlflow-runs-body">
+                    <tr>
+                        <td colspan="8" class="empty-state">Loading experiment history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="refresh-indicator">
+        <div class="refresh-dot"></div> Auto-refresh active
+    </div>
+
+    <script>
+        async function fetchDetails() {
+            try {
+                const response = await fetch('/api/details');
+                const data = await response.json();
+
+                // Update Summary Cards
+                document.getElementById('val-flow').textContent = data.summary.flow_name;
+                document.getElementById('val-exp').textContent = data.summary.exp_name;
+                document.getElementById('val-model').textContent = data.summary.model_name;
+                document.getElementById('val-stage').textContent = data.summary.stage;
+
+                // Update Prefect Runs Table
+                const prefectBody = document.getElementById('prefect-runs-body');
+                if (data.history.prefect_runs && data.history.prefect_runs.length > 0) {
+                    prefectBody.innerHTML = '';
+                    data.history.prefect_runs.forEach(run => {
+                        const tr = document.createElement('tr');
+                        const safeState = (run.state || 'UNKNOWN').toUpperCase();
+                        tr.innerHTML = `
+                            <td><span style="font-family: monospace; color: #666;">${run.id.substring(0, 8)}...</span></td>
+                            <td>${run.name}</td>
+                            <td><span class="status-badge status-${safeState}">${safeState}</span></td>
+                            <td>${run.duration}</td>
+                            <td>${run.start_time}</td>
+                            <td><span style="color: #666; font-size: 0.85rem;">${run.message}</span></td>
+                        `;
+                        prefectBody.appendChild(tr);
+                    });
+                } else {
+                    prefectBody.innerHTML = '<tr><td colspan="6" class="empty-state">No recent flow runs found.</td></tr>';
+                }
+
+                // Update Prefect Deployments Table
+                const depsBody = document.getElementById('prefect-deps-body');
+                if (data.history.prefect_deployments && data.history.prefect_deployments.length > 0) {
+                    depsBody.innerHTML = '';
+                    data.history.prefect_deployments.forEach(dep => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><span style="font-family: monospace; color: #666;">${dep.id.substring(0, 8)}...</span></td>
+                            <td>${dep.name}</td>
+                            <td><span>${dep.schedule}</span></td>
+                            <td><span style="color: #666; font-size: 0.85rem;">${dep.tags}</span></td>
+                        `;
+                        depsBody.appendChild(tr);
+                    });
+                } else {
+                    depsBody.innerHTML = '<tr><td colspan="4" class="empty-state">No active deployments found.</td></tr>';
+                }
+
+                // Update MLflow Runs Table
+                const mlflowBody = document.getElementById('mlflow-runs-body');
+                if (data.history.mlflow_runs && data.history.mlflow_runs.length > 0) {
+                    mlflowBody.innerHTML = '';
+                    data.history.mlflow_runs.forEach(run => {
+                        const tr = document.createElement('tr');
+                        const safeState = (run.status || 'UNKNOWN').toUpperCase();
+                        const modelType = (run.model_type || 'Unknown').toUpperCase();
+                        tr.innerHTML = `
+                            <td><span style="font-family: monospace; color: #666;">${run.run_id.substring(0, 8)}...</span></td>
+                            <td><strong>${modelType}</strong></td>
+                            <td><span class="status-badge status-${safeState}">${safeState}</span></td>
+                            <td><span class="metric-val">${run.svd_hit_rate}</span></td>
+                            <td><span class="metric-val">${run.cb_hit_rate}</span></td>
+                            <td><span>${run.svd_precision}</span></td>
+                            <td><span>${run.cb_precision}</span></td>
+                            <td>${run.start_time}</td>
+                        `;
+                        mlflowBody.appendChild(tr);
+                    });
+                } else {
+                    mlflowBody.innerHTML = '<tr><td colspan="8" class="empty-state">No recent experiment runs found.</td></tr>';
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch details:", error);
+            }
+        }
+
+        // Fetch immediately on load
+        fetchDetails();
+
+        // Polling every 5 seconds for real-time feel
+        setInterval(fetchDetails, 5000);
+    </script>
+</body>
+
+</html>

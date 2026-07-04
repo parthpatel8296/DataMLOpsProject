@@ -74,39 +74,39 @@ def run_script(script_path, args=None, cwd=None, description="script"):
 
 @task(name="Ingest Interactions", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
 def ingest_interactions_task(target_date):
-    script = os.path.join("scripts", "Ingestion", "userinteraction_batch_ingestion.py")
+    script = os.path.join(PROJECT_ROOT, "scripts", "Ingestion", "userinteraction_batch_ingestion.py")
     run_script(script, args=["--date", target_date], description="Ingest Interactions")
 
 @task(name="Ingest Profiles", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
 def ingest_profiles_task(target_date):
-    script = os.path.join("scripts", "Ingestion", "user_profiles_batch_ingestion.py")
+    script = os.path.join(PROJECT_ROOT, "scripts", "Ingestion", "user_profiles_batch_ingestion.py")
     run_script(script, args=["--date", target_date], description="Ingest Profiles")
 
 @task(name="Ingest Products", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
 def ingest_products_task():
-    script = os.path.join("scripts", "Ingestion", "ingest_product.py")
+    script = os.path.join(PROJECT_ROOT, "scripts", "Ingestion", "ingest_product.py")
     run_script(script, description="Ingest Products")
 
 @task(name="Validate Data", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
 def validate_data_task():
-    script = os.path.join("scripts", "validation", "validation_script.py")
+    script = os.path.join(PROJECT_ROOT, "scripts", "validation", "validation_script.py")
     run_script(script, description="Data Validation")
 
 @task(name="Prepare Data", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
 def prepare_data_task():
-    script = os.path.join("scripts", "curation", "curate_data.py")
+    script = os.path.join(PROJECT_ROOT, "scripts", "curation", "curate_data.py")
     run_script(script, description="Data Curation")
 
 @task(name="Transform Features", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
 def transform_features_task():
-    script = os.path.join("scripts", "feature_eng", "main.py")
+    script = os.path.join(PROJECT_ROOT, "scripts", "feature_eng", "main.py")
     # For orchestration, we usually run in full mode or incremental depending on policy
     # Here we default to incremental logic as per original
     run_script(script, args=["--incremental"], description="Feature Engineering")
 
 @task(name="Train Model", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
 def train_model_task():
-    script = os.path.join("scripts", "training", "train_eval.py")
+    script = os.path.join(PROJECT_ROOT, "scripts", "training", "train_eval.py")
     run_script(script, description="Model Training")
 
 def notify_on_failure(flow, flow_run, state):

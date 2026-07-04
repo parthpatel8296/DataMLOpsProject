@@ -27,7 +27,7 @@ sys.path.append(str(PROJECT_ROOT))
 DATA_DIR = PROJECT_ROOT / "data"
 OUTPUT_DIR = DATA_DIR / "processed/training_output"
 # Configure MLflow
-mlflow.set_tracking_uri(f"sqlite:///{str(PROJECT_ROOT / 'mlflow.db')}")
+mlflow.set_tracking_uri(f"sqlite:///{ (PROJECT_ROOT / 'mlflow.db').as_posix() }")
 mlflow.set_experiment("RetailX_Experiments")
 
 
@@ -228,7 +228,7 @@ class ContentBasedFiltering:
 
 def main():
     parser = argparse.ArgumentParser(description="Model Training")
-    parser.add_argument("--model", type=str, default="all", choices=["svd", "content", "all"])
+    parser.add_argument("--model", type=str, nargs="?", const="all", default="all", choices=["svd", "content", "all"])
     args = parser.parse_args()
 
     # Set dedicated MLflow experiment
@@ -279,12 +279,12 @@ def main():
         traceback.print_exc()
         sys.exit(1)
 
-    with mlflow.start_run(run_name=f"Feast_{args.model}_{datetime.now().strftime('%Y%m%d_%H%M')}"):
-        mlflow.log_param("engine", "feast_feature_store")
-        mlflow.log_param("model_type", args.model)
-        mlflow.log_param("split_strategy", "random_70_30")
+    if args.model in ["svd", "all"]:
+        with mlflow.start_run(run_name=f"svd_{datetime.now().strftime('%Y%m%d_%H%M')}"):
+            mlflow.log_param("engine", "feast_feature_store")
+            mlflow.log_param("model_type", "svd")
+            mlflow.log_param("split_strategy", "random_70_30")
 
-        if args.model in ["svd", "all"]:
             svd = CollaborativeFilteringSVD()
             svd.train(train_df)
             svd.evaluate_metrics(test_df, n=50)
@@ -301,7 +301,12 @@ def main():
             mlflow.log_artifact(str(OUTPUT_DIR / "svd_top_n_sample.csv"))
             mlflow.sklearn.log_model(svd, "svd_model_standalone")
 
-        if args.model in ["content", "all"]:
+    if args.model in ["content", "all"]:
+        with mlflow.start_run(run_name=f"content_{datetime.now().strftime('%Y%m%d_%H%M')}"):
+            mlflow.log_param("engine", "feast_feature_store")
+            mlflow.log_param("model_type", "content")
+            mlflow.log_param("split_strategy", "random_70_30")
+
             cb_model = ContentBasedFiltering()
             dim_prod = pd.read_parquet(PROJECT_ROOT / "data" / "processed" / "features" / "product_features.parquet")
             cb_model.fit(dim_prod, train_df)
@@ -323,7 +328,7 @@ def main():
             avg_conf = np.mean(avg_sim_scores) if avg_sim_scores else 0
             mlflow.log_metric("content_avg_confidence", avg_conf)
             mlflow.log_artifact(str(OUTPUT_DIR / "content_recs_sample.csv"))
-            mlflow.sklearn.log_model(cb_model.preprocessor, "cb_model")
+            mlflow.sklearn.log_model(cb_model, "cb_model")
 
     logger.info("Model Training Completed.")
 
