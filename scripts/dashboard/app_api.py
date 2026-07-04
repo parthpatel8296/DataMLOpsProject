@@ -137,7 +137,13 @@ def get_mlflow_details():
             model = registered_models[0]
             model_name = model.name
             if model.latest_versions:
-                stage = model.latest_versions[0].current_stage
+                stages = [v.current_stage for v in model.latest_versions]
+                if "Production" in stages:
+                    stage = "Production"
+                elif "Staging" in stages:
+                    stage = "Staging"
+                else:
+                    stage = stages[0] if stages else "None"
     except Exception as e:
         print(f"Error fetching MLflow models: {e}")
         
