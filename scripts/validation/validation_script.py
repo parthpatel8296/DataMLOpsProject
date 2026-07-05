@@ -293,7 +293,7 @@ def generate_report():
     report_path = REPORT_DIR / f"data_quality_report_{timestamp_str}.txt"
     
     with open(report_path, "w", encoding="utf-8") as f:
-        f.write("Reco-Mart Data Quality Audit\n")
+        f.write("RetailX Data Quality Audit\n")
         f.write(f"Execution Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("=" * 50 + "\n")
         
