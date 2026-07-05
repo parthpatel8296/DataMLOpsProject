@@ -157,8 +157,8 @@ def validate_user_interactions():
     ret = {
         "dataset": "user_interactions",
         "total_records": len(df),
-        "stats_date_min": str(df["timestamp"].min()) if "timestamp" in df.columns else "N/A",
-        "stats_date_max": str(df["timestamp"].max()) if "timestamp" in df.columns else "N/A",
+        "stats_date_min": str(pd.to_datetime(df["timestamp"].min(), unit='s')) if "timestamp" in df.columns else "N/A",
+        "stats_date_max": str(pd.to_datetime(df["timestamp"].max(), unit='s')) if "timestamp" in df.columns else "N/A",
         "stats_unique_users": df["user_id"].nunique() if "user_id" in df.columns else 0,
         "stats_unique_products": df["product_id"].nunique() if "product_id" in df.columns else 0,
         "stats_event_distribution": df["event_type"].value_counts().to_dict() if "event_type" in df.columns else {},
