@@ -100,17 +100,37 @@ def prepare_data_task():
 @task(name="Transform Features", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
 def transform_features_task():
     script = os.path.join(PROJECT_ROOT, "scripts", "feature_eng", "main.py")
-    # For orchestration, we usually run in full mode or incremental depending on policy
-    # Here we default to incremental logic as per original
     run_script(script, args=["--incremental"], description="Feature Engineering")
 
-@task(name="Train Model", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
-def train_model_task():
-    script = os.path.join(PROJECT_ROOT, "scripts", "training", "train_eval.py")
-    run_script(script, description="Model Training")
+@task(name="Apply Feature Store", retries=TASK_RETRIES, retry_delay_seconds=TASK_RETRY_DELAY, retry_jitter_factor=TASK_RETRY_JITTER)
+def apply_feature_store_task():
+    prefect_logger = get_run_logger()
+    prefect_logger.info("Applying Feast definitions")
+    logging.info("Applying Feast definitions")
+    
+    feast_dir = os.path.join(PROJECT_ROOT, "feast_repo")
+    feast_exe = os.path.join(os.path.dirname(sys.executable), "feast.exe")
+    cmd = [feast_exe, "apply"]
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=feast_dir,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        prefect_logger.info(f"Feast Apply Output:\n{result.stdout}")
+        logging.info(f"Feast Apply Output:\n{result.stdout}")
+    except subprocess.CalledProcessError as e:
+        prefect_logger.error(f"Feast Apply failed with return code {e.returncode}")
+        logging.error(f"Feast Apply failed with return code {e.returncode}")
+        prefect_logger.error(f"Stdout:\n{e.stdout}\nStderr:\n{e.stderr}")
+        logging.error(f"Stdout:\n{e.stdout}\nStderr:\n{e.stderr}")
+        raise RuntimeError("Feast Apply failed.") from e
 
 def notify_on_failure(flow, flow_run, state):
-    msg = f"CRITICAL: Pipeline Flow '{flow.name}' FAILED in state {state}"
+    msg = f"CRITICAL: Data Pipeline Flow '{flow.name}' FAILED in state {state}"
     print(msg)
     logging.error(msg)
 
@@ -122,16 +142,15 @@ def get_latest_source_date():
     files = [f for f in os.listdir(source_dir) if f.endswith("_user_interactions.csv")]
     if not files:
         return None
-    # Extract dates and find max
     dates = [f.split('_')[0] for f in files]
     return max(dates)
 
 from typing import Optional
 
-@flow(name="RetailX Pipeline", log_prints=True, on_failure=[notify_on_failure])
-def retailx_pipeline(override_date: Optional[str] = None):
+@flow(name="RetailX Data Pipeline", log_prints=True, on_failure=[notify_on_failure])
+def retailx_data_pipeline(override_date: Optional[str] = None):
     prefect_logger = get_run_logger()
-    prefect_logger.info("Starting RetailX Pipeline Execution")
+    prefect_logger.info("Starting RetailX Data Pipeline Execution")
 
     # 1. Ingest Data
     if override_date:
@@ -139,7 +158,6 @@ def retailx_pipeline(override_date: Optional[str] = None):
     else:
         target_date = get_latest_source_date()
         if not target_date:
-            # Fallback to today if no files found (will likely fail but better than erroring here)
             target_date = datetime.now().strftime("%Y%m%d")
         
     prefect_logger.info(f"Using Target Ingestion Date: {target_date}")
@@ -154,23 +172,23 @@ def retailx_pipeline(override_date: Optional[str] = None):
     # 3. Transform
     transform_features_task()
     
-    # 4. Train
-    train_model_task()
-
-    prefect_logger.info("RetailX Pipeline Execution Completed Successfully.")
+    # 4. Feature Store
+    apply_feature_store_task()
+    
+    prefect_logger.info("RetailX Data Pipeline Execution Completed Successfully.")
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Run or Serve the RetailX Pipeline")
-    parser.add_argument("--serve", action="store_true", help="Serve the flow with a daily schedule")
+    parser = argparse.ArgumentParser(description="Run or Serve the RetailX Data Pipeline")
+    parser.add_argument("--serve", action="store_true", help="Serve the flow with a 2 minute schedule")
     parser.add_argument("--date", type=str, help="Target date for ingestion (YYYYMMDD)")
     args = parser.parse_args()
     
     if args.serve:
-        retailx_pipeline.serve(
-            name="retailx-daily-deployment",
-            cron="30 2 * * *", # Run daily at 02:30 AM
-            tags=["retailx", "daily"]
+        retailx_data_pipeline.serve(
+            name="retailx-data-deployment",
+            cron="*/10 * * * *", # Run every 10 minutes
+            tags=["retailx", "dataops"]
         )
     else:
-        retailx_pipeline(override_date=args.date)
+        retailx_data_pipeline(override_date=args.date)

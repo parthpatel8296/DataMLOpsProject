@@ -8,7 +8,7 @@ import mlflow
 from mlflow.tracking import MlflowClient
 from prefect.client.orchestration import get_client
 app = FastAPI(title="RetailX Details API")
-
+os.environ["PREFECT_API_URL"] = "http://127.0.0.1:4205/api"
 # Setup CORS
 app.add_middleware(
     CORSMiddleware,
@@ -73,7 +73,7 @@ async def get_prefect_details():
     if flow_name == "Not Available":
         # Fallback for demonstration if server isn't running properly
         try:
-            with open(PROJECT_ROOT / "scripts" / "orchestration" / "retailx_pipeline.py", "r") as f:
+            with open(PROJECT_ROOT / "scripts" / "orchestration" / "data_pipeline.py", "r") as f:
                 for line in f:
                     if "@flow(" in line and "name=" in line:
                         flow_name = line.split('name="')[1].split('"')[0]

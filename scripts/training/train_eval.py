@@ -299,7 +299,7 @@ def main():
                         f.write(f"{uid},{pid},{score}\n")
             
             mlflow.log_artifact(str(OUTPUT_DIR / "svd_top_n_sample.csv"))
-            mlflow.sklearn.log_model(svd, "svd_model_standalone")
+            mlflow.sklearn.log_model(svd, "svd_model_standalone", serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE)
 
     if args.model in ["content", "all"]:
         with mlflow.start_run(run_name=f"content_{datetime.now().strftime('%Y%m%d_%H%M')}"):
@@ -328,7 +328,7 @@ def main():
             avg_conf = np.mean(avg_sim_scores) if avg_sim_scores else 0
             mlflow.log_metric("content_avg_confidence", avg_conf)
             mlflow.log_artifact(str(OUTPUT_DIR / "content_recs_sample.csv"))
-            mlflow.sklearn.log_model(cb_model, "cb_model")
+            mlflow.sklearn.log_model(cb_model, "cb_model", serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE)
 
     logger.info("Model Training Completed.")
 
