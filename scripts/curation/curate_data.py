@@ -314,17 +314,7 @@ def main():
         
     logger.info(f"Saved lineage metadata to {metadata_file}")
 
-    # 5. Save DVC Metrics (Fixed Path)
-    # Allows tracking via 'dvc metrics show'
-    metrics_dir = PROJECT_ROOT / "metrics"
-    metrics_dir.mkdir(parents=True, exist_ok=True)
-    dvc_metric_file = metrics_dir / "curation_metadata.json"
-    
-    with open(dvc_metric_file, "w") as f:
-        json.dump(metadata, f, indent=4)
-        
-    logger.info(f"Saved DVC metrics to {dvc_metric_file}")
-    
+
     logger.info("Curation workflow completed.")
 
 if __name__ == "__main__":
