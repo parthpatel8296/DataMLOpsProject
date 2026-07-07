@@ -127,7 +127,7 @@ def main():
     # 4. Add Feast specific timestamps
     # Feast requires an event_timestamp for point-in-time joins
     # We set features to an old date, and interactions to now, so they always match
-    past_date = pd.Timestamp('2000-01-01', tz='UTC')
+    past_date = pd.Timestamp('2025-01-01', tz='UTC')
     now_date = pd.Timestamp.now(tz="UTC")
     
     dim_user['event_timestamp'] = past_date
