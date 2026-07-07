@@ -13,7 +13,7 @@ sys.path.append(str(PROJECT_ROOT))
 DATA_DIR = PROJECT_ROOT / "data"
 LOG_DIR = DATA_DIR / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
-FEAST_DATA_DIR = PROJECT_ROOT / "feast_repo" / "data"
+FEAST_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "features"
 FEAST_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 from scripts.feature_eng.config import (
