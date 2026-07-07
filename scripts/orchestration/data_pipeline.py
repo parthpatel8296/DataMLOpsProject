@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 LOG_DIR = os.path.join(PROJECT_ROOT, "data", "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
-LOG_FILE = os.path.join(LOG_DIR, "pipeline_orchestration.log")
+LOG_FILE = os.path.join(LOG_DIR, "data_pipeline.log")
 
 # Create File Handler
 file_handler = logging.FileHandler(LOG_FILE)
