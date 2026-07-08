@@ -85,12 +85,12 @@ def load_data(partition_path, entity_name):
             raise FileNotFoundError(msg)
 
 def process_interactions(df):
-    """Refined logic from task_5_eda.ipynb"""
     if df.empty: return df
     
     logger.info("Processing Interactions...")
     
     # Clean
+    df = df.drop_duplicates()
     df = df.dropna(subset=["user_id", "product_id"])
     df["duration_seconds"] = df["duration_seconds"].fillna(0)
     
@@ -134,6 +134,7 @@ def process_profiles(df):
     logger.info("Processing Profiles...")
     
     # Validation
+    df = df.drop_duplicates()
     df = df.dropna(subset=["user_id"])
     df["user_id"] = pd.to_numeric(df["user_id"], errors='coerce').fillna(0).astype('int64')
     
@@ -153,12 +154,12 @@ def process_profiles(df):
     return df
 
 def process_catalog(df):
-    """Refined logic from task_5_eda.ipynb"""
     if df.empty: return df
     
     logger.info("Processing Catalog...")
     
     # Clean
+    df = df.drop_duplicates()
     df = df.dropna(subset=["product_id"])
     df["product_id"] = pd.to_numeric(df["product_id"], errors='coerce').fillna(0).astype('int64')
     if "category_id" in df.columns:
